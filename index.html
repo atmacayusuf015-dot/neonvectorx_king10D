@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Vector - Arcade Survival</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #030308;
+            font-family: 'Rajdhani', sans-serif;
+            color: #ffffff;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #0a0a18 0%, #020205 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #hud {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hud-card {
+            background: rgba(10, 12, 28, 0.75);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.15);
+            border-radius: 12px;
+            padding: 8px 16px;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            pointer-events: auto;
+        }
+
+        .lang-toggle-btn {
+            background: rgba(0, 243, 255, 0.15);
+            border: 1px solid #00f3ff;
+            color: #00f3ff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .lang-toggle-btn:hover {
+            background: rgba(0, 243, 255, 0.35);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+            transform: scale(1.03);
+        }
+
+        .energy-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .energy-bar-bg {
+            width: 140px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00f3ff;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+        }
+
+        .energy-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #00f3ff, #00ff66);
+            transition: width 0.15s ease-out, background 0.3s;
+        }
+
+        .energy-bar-fill.critical {
+            background: linear-gradient(90deg, #ff0055, #ff5500) !important;
+            animation: pulseWarning 0.5s infinite alternate;
+        }
+
+        @keyframes pulseWarning {
+            0% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        .hud-val {
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .hud-coin { color: #ffcc00; text-shadow: 0 0 8px rgba(255, 204, 0, 0.6); }
+        .hud-score { color: #00f3ff; text-shadow: 0 0 8px rgba(0, 243, 255, 0.6); }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(3, 3, 10, 0.88);
+            backdrop-filter: blur(12px);
+            z-index: 20;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .game-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: #00f3ff;
+            text-shadow: 0 0 20px #00f3ff, 0 0 40px rgba(0, 243, 255, 0.5);
+            letter-spacing: 4px;
+            margin-bottom: 18px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .modal-card {
+            background: rgba(14, 16, 36, 0.9);
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.25), inset 0 0 15px rgba(0, 243, 255, 0.1);
+            border-radius: 18px;
+            padding: 24px 28px;
+            width: 90%;
+            max-width: 480px;
+            text-align: center;
+            position: relative;
+        }
+
+        .menu-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #00f3ff;
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 243, 255, 0.5);
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: #00f3ff;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin: 6px 0;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00f3ff, #0088ff);
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.7);
+            background: linear-gradient(135deg, #33f6ff, #1a95ff);
+        }
+
+        .btn-shop {
+            background: linear-gradient(135deg, #ffcc00, #ff8800);
+            color: #000;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
+        }
+
+        .btn-shop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #aaa;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.8rem;
+            padding: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 0, 85, 0.2);
+            color: #ff3366;
+            border-color: #ff0055;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff0055, #ff0022);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.7);
+        }
+
+        .shop-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 320px;
+            overflow-y: auto;
+            margin: 16px 0;
+            padding-right: 6px;
+        }
+
+        .shop-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .shop-container::-webkit-scrollbar-thumb {
+            background: #00f3ff;
+            border-radius: 4px;
+        }
+
+        .ship-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .ship-card.active {
+            border-color: #00f3ff;
+            background: rgba(0, 243, 255, 0.12);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+
+        .ship-details h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .ship-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .badge {
+            font-size: 0.72rem;
+            padding: 3px 7px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ccc;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+        }
+
+        .badge-perk {
+            border-color: #ffcc00;
+            color: #ffcc00;
+            background: rgba(255, 204, 0, 0.1);
+        }
+
+        .btn-action-small {
+            width: auto;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 14px 0;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .stat-val {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #00f3ff;
+        }
+
+        .toast-msg {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 243, 255, 0.2);
+            border: 1px solid #00f3ff;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-family: 'Orbitron', sans-serif;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .toast-msg.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <div id="hud">
+        <div class="hud-card">
+            <div class="energy-bar-wrap">
+                <span style="color: #00f3ff;" data-i18n="energy_label">⚡ ENERJİ</span>
+                <div class="energy-bar-bg">
+                    <div id="hudEnergyFill" class="energy-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div class="hud-card">
+            <span class="hud-coin">🪙 <span id="hudCoins" class="hud-val">0</span></span>
+            <span style="color: rgba(255,255,255,0.3);">|</span>
+            <span class="hud-score">🏆 <span id="hudScore" class="hud-val">0</span></span>
+            <button class="lang-toggle-btn" onclick="toggleLanguage()">
+                <span class="langFlag">🇹🇷</span> <span class="langText">TR</span>
+            </button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- MAIN MENU OVERLAY -->
+    <div id="menuOverlay" class="overlay">
+        <h1 class="game-title">NEON VECTOR</h1>
+        <div class="modal-card">
+            <!-- Language Switcher inside Main Menu Header -->
+            <div class="menu-top-bar">
+                <span style="font-size: 0.85rem; color: #aaa; font-family: 'Orbitron';" data-i18n="select_language">DİL SEÇENEĞİ / LANG:</span>
+                <button class="lang-toggle-btn" onclick="toggleLanguage()">
+                    <span class="langFlag">🇹🇷</span> <span class="langText" data-i18n="lang_btn_text">TÜRKÇE</span>
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label for="usernameInput" data-i18n="callsign_label">PİLOT ÇAĞRI KODU:</label>
+                <input type="text" id="usernameInput" class="form-input" maxlength="12" placeholder="PILOT NAME">
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-label" data-i18n="high_score">YÜKSEK SKOR</div>
+                    <div class="stat-val" id="menuHighScore">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label" data-i18n="total_coins">TOPLAM JETON</div>
+                    <div class="stat-val" id="menuTotalCoins" style="color:#ffcc00;">0</div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="startGame()" data-i18n="launch_btn">🚀 GÖREVİ BAŞLAT</button>
+            <button class="btn btn-shop" onclick="openShop()" data-i18n="garage_btn">🛸 GARAJ & GEMİLER</button>
+            <button class="btn btn-secondary" onclick="resetCoinsBalance()" data-i18n="reset_coins_btn">🧹 BAKİYEYİ SIFIRLA</button>
+
+            <div id="toastMsg" class="toast-msg"></div>
+        </div>
+    </div>
+
+    <!-- SHOP OVERLAY -->
+    <div id="shopOverlay" class="overlay hidden">
+        <h1 class="game-title" style="color: #ffcc00; text-shadow: 0 0 20px #ffcc00;" data-i18n="cyber_garage">SİBER GARAJ</h1>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                <span class="hud-coin" style="font-size:1.1rem; font-family:'Orbitron';">
+                    <span data-i18n="balance">BAKİYE:</span> 🪙 <span id="shopCoins">0</span>
+                </span>
+            </div>
+
+            <div class="shop-container" id="shopList"></div>
+
+            <button class="btn btn-danger" onclick="closeShop()" data-i18n="back_menu">MENÜYE DÖN</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER OVERLAY -->
+    <div id="gameOverOverlay" class="overlay hidden">
+        <h1 class="game-title" id="gameOverTitle" style="color: #ff0055; text-shadow: 0 0 20px #ff0055;">SİSTEM ARIZASI</h1>
+        <div class="modal-card">
+            <p id="gameOverReason" style="color: #aaa; margin-bottom: 14px; font-size: 1.1rem;">GEMİ İMHA EDİLDİ</p>
+
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-label" data-i18n="score">SKOR</div>
+                    <div class="stat-val" id="finalScore">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label" data-i18n="earned_coins">KAZANILAN JETON</div>
+                    <div class="stat-val" id="earnedCoins" style="color:#ffcc00;">+0</div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="startGame()" data-i18n="re_engage">🔄 YENİDEN BAŞLA</button>
+            <button class="btn btn-danger" onclick="showMenu()" data-i18n="main_menu">🏠 ANA MENÜ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const I18N = {
+        tr: {
+            energy_label: "⚡ ENERJİ",
+            callsign_label: "PİLOT ÇAĞRI KODU:",
+            placeholder_name: "PİLOT ADI",
+            high_score: "YÜKSEK SKOR",
+            total_coins: "TOPLAM JETON",
+            launch_btn: "🚀 GÖREVİ BAŞLAT",
+            garage_btn: "🛸 GARAJ & GEMİLER",
+            reset_coins_btn: "🧹 BAKİYEYİ SIFIRLA",
+            select_language: "DİL SEÇENEĞİ:",
+            lang_btn_text: "TÜRKÇE 🇹🇷",
+            cyber_garage: "SİBER GARAJ",
+            balance: "BAKİYE:",
+            back_menu: "MENÜYE DÖN",
+            score: "SKOR",
+            earned_coins: "KAZANILAN JETON",
+            re_engage: "🔄 YENİDEN BAŞLA",
+            main_menu: "🏠 ANA MENÜ",
+            equipped: "KUŞANILDI",
+            equip: "KUŞAN",
+            buy: "SATIN AL",
+            speed: "HIZ",
+            max_energy: "MKS ENERJİ",
+            magnet: "MIKNATIS",
+            power_depleted: "GÜÇ HÜCRESİ TÜKENDİ!",
+            critical_impact: "KRİTİK DARBE!",
+            system_failure: "SİSTEM ARIZASI",
+            coins_reset_toast: "Jeton bakiyesi 0 olarak sıfırlandı!"
+        },
+        en: {
+            energy_label: "⚡ ENERGY",
+            callsign_label: "PILOT CALLSIGN:",
+            placeholder_name: "PILOT NAME",
+            high_score: "HIGH SCORE",
+            total_coins: "TOTAL COINS",
+            launch_btn: "🚀 LAUNCH MISSION",
+            garage_btn: "🛸 GARAGE & SHIPS",
+            reset_coins_btn: "🧹 RESET BALANCE",
+            select_language: "LANGUAGE:",
+            lang_btn_text: "ENGLISH 🇬🇧",
+            cyber_garage: "CYBER GARAGE",
+            balance: "BALANCE:",
+            back_menu: "BACK TO MENU",
+            score: "SCORE",
+            earned_coins: "COINS EARNED",
+            re_engage: "🔄 RE-ENGAGE",
+            main_menu: "🏠 MAIN MENU",
+            equipped: "EQUIPPED",
+            equip: "EQUIP",
+            buy: "BUY",
+            speed: "SPEED",
+            max_energy: "MAX ENERGY",
+            magnet: "MAGNET",
+            power_depleted: "POWER CELL DEPLETED!",
+            critical_impact: "CRITICAL IMPACT!",
+            system_failure: "SYSTEM FAILURE",
+            coins_reset_toast: "Coin balance reset to 0!"
+        }
+    };
+
+    const SHIPS = {
+        vector_alpha: {
+            id: 'vector_alpha', name: 'Vector Alpha', cost: 0, color: '#00f3ff',
+            speed: 7.0, maxEnergy: 100, magnet: 0,
+            perk: { tr: 'Dengeli Başlangıç Gemisi', en: 'Balanced Starter Ship' }
+        },
+        neon_phantom: {
+            id: 'neon_phantom', name: 'Neon Phantom', cost: 150, color: '#a800ff',
+            speed: 10.5, maxEnergy: 100, magnet: 90,
+            perk: { tr: '+%50 Hız & 90px Mıknatıs', en: '+50% Speed & 90px Magnet' }
+        },
+        cyber_gold: {
+            id: 'cyber_gold', name: 'Cyber Gold', cost: 350, color: '#ffcc00',
+            speed: 7.5, maxEnergy: 120, magnet: 140,
+            perk: { tr: '2X Jeton Çarpanı + Geniş Mıknatıs', en: '2X Coin Multiplier + Large Magnet' }
+        },
+        inferno_core: {
+            id: 'inferno_core', name: 'Inferno Core', cost: 600, color: '#ff3300',
+            speed: 8.5, maxEnergy: 130, magnet: 110,
+            perk: { tr: 'Kalkan Bariyeri + Alev İz Efekti', en: 'Shield Barrier + Fire Particle Trail' }
+        },
+        titan_overdrive: {
+            id: 'titan_overdrive', name: 'Titan Overdrive', cost: 850, color: '#00ff66',
+            speed: 7.0, maxEnergy: 200, magnet: 160,
+            perk: { tr: '%200 Süper Tank Batarya + Düşük Tüketim', en: '200% Super Tank Battery + Low Drain' }
+        },
+        quantum_apex: {
+            id: 'quantum_apex', name: 'Quantum Apex', cost: 1500, color: '#ff00ff',
+            speed: 11.5, maxEnergy: 180, magnet: 220,
+            perk: { tr: 'Ultra Hız + 220px Mıknatıs + Kalkan + 2X Jeton', en: 'Ultra Speed + 220px Magnet + Shield + 2X Coins' }
+        }
+    };
+
+    let currentLang = localStorage.getItem('nv_lang') || 'tr';
+
+    // Retrieve saved coins & sanity check to prevent unlimited cheat states (>999999)
+    let rawCoins = parseInt(localStorage.getItem('nv_coins'));
+    if (isNaN(rawCoins) || rawCoins >= 999999 || rawCoins < 0) {
+        rawCoins = 0; // Default reset if invalid or unlimited glitch value detected
+    }
+
+    let userData = {
+        username: localStorage.getItem('nv_user') || 'PILOT-01',
+        coins: rawCoins,
+        highScore: parseInt(localStorage.getItem('nv_highscore')) || 0,
+        unlockedShips: JSON.parse(localStorage.getItem('nv_unlocked')) || ['vector_alpha'],
+        selectedShip: localStorage.getItem('nv_ship') || 'vector_alpha'
+    };
+
+    function saveData() {
+        localStorage.setItem('nv_lang', currentLang);
+        localStorage.setItem('nv_user', userData.username);
+        localStorage.setItem('nv_coins', userData.coins);
+        localStorage.setItem('nv_highscore', userData.highScore);
+        localStorage.setItem('nv_unlocked', JSON.stringify(userData.unlockedShips));
+        localStorage.setItem('nv_ship', userData.selectedShip);
+    }
+
+    saveData(); // Save cleaned state immediately on load
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'tr' ? 'en' : 'tr';
+        saveData();
+        applyLanguage();
+        if(!document.getElementById('shopOverlay').classList.contains('hidden')) renderShop();
+    }
+
+    function applyLanguage() {
+        const langData = I18N[currentLang];
+        
+        // Update language toggle buttons text (HUD & Menu)
+        document.querySelectorAll('.langFlag').forEach(el => el.innerText = currentLang === 'tr' ? '🇹🇷' : '🇬🇧');
+        document.querySelectorAll('.langText').forEach(el => {
+            if (el.hasAttribute('data-i18n')) {
+                el.innerText = langData[el.getAttribute('data-i18n')];
+            } else {
+                el.innerText = currentLang === 'tr' ? 'TR' : 'EN';
+            }
+        });
+
+        // Update all DOM elements with data-i18n attribute
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (langData[key]) {
+                el.innerText = langData[key];
+            }
+        });
+
+        document.getElementById('usernameInput').placeholder = langData.placeholder_name;
+    }
+
+    function resetCoinsBalance() {
+        userData.coins = 0;
+        saveData();
+        updateHUD();
+        playSynthSound(300, 0.2, 'sawtooth');
+        showToast(I18N[currentLang].coins_reset_toast);
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toastMsg');
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioCtx();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSynthSound(freq, duration, type = 'sine') {
+        try {
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch(e){}
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let isPlaying = false;
+    let score = 0;
+    let sessionCoins = 0;
+    let energy = 100;
+    let maxEnergy = 100;
+    let animId = null;
+    let spawnTimer = 0;
+
+    let player, obstacles, coins, energyCells;
+    let keys = {};
+    let mouseTouchPos = { x: null, y: null };
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    document.getElementById('usernameInput').value = userData.username;
+    applyLanguage();
+    updateHUD();
+
+    function updateHUD() {
+        document.getElementById('hudCoins').innerText = userData.coins.toLocaleString();
+        document.getElementById('hudScore').innerText = Math.floor(score).toLocaleString();
+        document.getElementById('menuHighScore').innerText = userData.highScore.toLocaleString();
+        document.getElementById('menuTotalCoins').innerText = userData.coins.toLocaleString();
+        
+        const fill = document.getElementById('hudEnergyFill');
+        const pct = Math.max(0, Math.min(100, (energy / maxEnergy) * 100));
+        fill.style.width = pct + '%';
+        if (pct < 25) fill.classList.add('critical');
+        else fill.classList.remove('critical');
+    }
+
+    function showMenu() {
+        isPlaying = false;
+        if(animId) cancelAnimationFrame(animId);
+        document.getElementById('menuOverlay').classList.remove('hidden');
+        document.getElementById('shopOverlay').classList.add('hidden');
+        document.getElementById('gameOverOverlay').classList.add('hidden');
+        updateHUD();
+    }
+
+    function openShop() {
+        document.getElementById('menuOverlay').classList.add('hidden');
+        document.getElementById('shopOverlay').classList.remove('hidden');
+        renderShop();
+    }
+
+    function closeShop() {
+        document.getElementById('shopOverlay').classList.add('hidden');
+        document.getElementById('menuOverlay').classList.remove('hidden');
+    }
+
+    function renderShop() {
+        document.getElementById('shopCoins').innerText = userData.coins.toLocaleString();
+        const list = document.getElementById('shopList');
+        list.innerHTML = '';
+
+        const langData = I18N[currentLang];
+
+        Object.values(SHIPS).forEach(ship => {
+            const isUnlocked = userData.unlockedShips.includes(ship.id);
+            const isSelected = userData.selectedShip === ship.id;
+
+            const div = document.createElement('div');
+            div.className = `ship-card ${isSelected ? 'active' : ''}`;
+            
+            let btnHTML = '';
+            if (isSelected) {
+                btnHTML = `<button class="btn btn-action-small" style="background:#333; color:#aaa; cursor:default;">${langData.equipped}</button>`;
+            } else if (isUnlocked) {
+                btnHTML = `<button class="btn btn-primary btn-action-small" onclick="selectShip('${ship.id}')">${langData.equip}</button>`;
+            } else {
+                btnHTML = `<button class="btn btn-shop btn-action-small" onclick="buyShip('${ship.id}')">${ship.cost} 🪙</button>`;
+            }
+
+            const perkText = ship.perk[currentLang] || ship.perk.en;
+
+            div.innerHTML = `
+                <div class="ship-details">
+                    <h4 style="color:${ship.color}">🚀 ${ship.name}</h4>
+                    <div class="ship-badges">
+                        <span class="badge">💨 ${langData.speed}: ${ship.speed}</span>
+                        <span class="badge">⚡ ${langData.max_energy}: ${ship.maxEnergy}</span>
+                        <span class="badge">🧲 ${langData.magnet}: ${ship.magnet}px</span>
+                        <span class="badge badge-perk">🌟 ${perkText}</span>
+                    </div>
+                </div>
+                ${btnHTML}
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function selectShip(id) {
+        userData.selectedShip = id;
+        saveData();
+        renderShop();
+        playSynthSound(500, 0.1);
+    }
+
+    function buyShip(id) {
+        const ship = SHIPS[id];
+        if (userData.coins >= ship.cost) {
+            userData.coins -= ship.cost;
+            userData.unlockedShips.push(id);
+            userData.selectedShip = id;
+            saveData();
+            playSynthSound(800, 0.2);
+            renderShop();
+            updateHUD();
+        } else {
+            playSynthSound(150, 0.3, 'sawtooth');
+        }
+    }
+
+    function startGame() {
+        initAudio();
+        const inputName = document.getElementById('usernameInput').value.trim();
+        if (inputName) userData.username = inputName;
+        saveData();
+
+        document.getElementById('menuOverlay').classList.add('hidden');
+        document.getElementById('gameOverOverlay').classList.add('hidden');
+
+        const shipData = SHIPS[userData.selectedShip];
+
+        maxEnergy = shipData.maxEnergy;
+        energy = maxEnergy;
+
+        player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 14,
+            color: shipData.color,
+            speed: shipData.speed,
+            magnet: shipData.magnet,
+            hasShield: (shipData.id === 'inferno_core' || shipData.id === 'quantum_apex'),
+            doubleCoins: (shipData.id === 'cyber_gold' || shipData.id === 'quantum_apex'),
+            slowDrain: (shipData.id === 'titan_overdrive'),
+            trail: []
+        };
+
+        obstacles = [];
+        coins = [];
+        energyCells = [];
+        score = 0;
+        sessionCoins = 0;
+        spawnTimer = 0;
+        isPlaying = true;
+
+        playSynthSound(440, 0.15, 'sine');
+        animate();
+    }
+
+    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    canvas.addEventListener('mousemove', e => {
+        if(e.buttons === 1) {
+            mouseTouchPos.x = e.clientX;
+            mouseTouchPos.y = e.clientY;
+        }
+    });
+
+    canvas.addEventListener('touchmove', e => {
+        if(e.touches.length > 0) {
+            mouseTouchPos.x = e.touches[0].clientX;
+            mouseTouchPos.y = e.touches[0].clientY;
+        }
+    });
+
+    canvas.addEventListener('touchend', () => { mouseTouchPos.x = null; mouseTouchPos.y = null; });
+    canvas.addEventListener('mouseup', () => { mouseTouchPos.x = null; mouseTouchPos.y = null; });
+
+    function animate() {
+        if (!isPlaying) return;
+
+        // Clear Screen with background glow
+        ctx.fillStyle = 'rgba(3, 3, 10, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Player Movement Logic
+        if (keys['w'] || keys['arrowup']) player.y -= player.speed;
+        if (keys['s'] || keys['arrowdown']) player.y += player.speed;
+        if (keys['a'] || keys['arrowleft']) player.x -= player.speed;
+        if (keys['d'] || keys['arrowright']) player.x += player.speed;
+
+        if (mouseTouchPos.x !== null && mouseTouchPos.y !== null) {
+            player.x += (mouseTouchPos.x - player.x) * 0.15;
+            player.y += (mouseTouchPos.y - player.y) * 0.15;
+        }
+
+        // Clamp inside canvas bounds
+        player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+        player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+
+        // Energy Decay System
+        const drainRate = player.slowDrain ? 0.05 : 0.09;
+        energy -= drainRate;
+
+        if (energy <= 0) {
+            energy = 0;
+            gameOver(I18N[currentLang].power_depleted);
+            return;
+        }
+
+        player.trail.push({ x: player.x, y: player.y, alpha: 1 });
+        if (player.trail.length > 12) player.trail.shift();
+
+        player.trail.forEach(t => {
+            t.alpha -= 0.08;
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, player.radius * 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = player.color;
+            ctx.globalAlpha = Math.max(0, t.alpha);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        });
+
+        // Ship Core & Glow
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.beginPath();
+        ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+        ctx.fillStyle = player.color;
+        ctx.shadowColor = player.color;
+        ctx.shadowBlur = 20;
+        ctx.fill();
+
+        // Inner core light
+        ctx.beginPath();
+        ctx.arc(0, 0, player.radius * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        if (player.hasShield) {
+            ctx.beginPath();
+            ctx.arc(0, 0, player.radius + 8, 0, Math.PI * 2);
+            ctx.strokeStyle = '#00f3ff';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#00f3ff';
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        spawnTimer++;
+
+        if (spawnTimer % 30 === 0) {
+            const size = Math.random() * 22 + 18;
+            const side = Math.floor(Math.random() * 4);
+            let x, y, vx, vy;
+
+            if (side === 0) { x = Math.random() * canvas.width; y = -30; vx = (Math.random() - 0.5) * 3; vy = Math.random() * 3.5 + 2; }
+            else if (side === 1) { x = canvas.width + 30; y = Math.random() * canvas.height; vx = -(Math.random() * 3.5 + 2); vy = (Math.random() - 0.5) * 3; }
+            else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 30; vx = (Math.random() - 0.5) * 3; vy = -(Math.random() * 3.5 + 2); }
+            else { x = -30; y = Math.random() * canvas.height; vx = Math.random() * 3.5 + 2; vy = (Math.random() - 0.5) * 3; }
+
+            obstacles.push({ x, y, size, vx, vy, rot: 0, rotSpeed: (Math.random() - 0.5) * 0.08 });
+        }
+
+        // 🪙 Yellow Coins
+        if (spawnTimer % 75 === 0) {
+            coins.push({
+                x: Math.random() * (canvas.width - 80) + 40,
+                y: Math.random() * (canvas.height - 80) + 40,
+                radius: 8,
+                pulse: 0
+            });
+        }
+
+        // ⚡ Green Energy Cells
+        if (spawnTimer % 100 === 0) {
+            energyCells.push({
+                x: Math.random() * (canvas.width - 80) + 40,
+                y: Math.random() * (canvas.height - 80) + 40,
+                radius: 10
+            });
+        }
+
+        // Process Coins
+        for (let i = coins.length - 1; i >= 0; i--) {
+            let c = coins[i];
+            c.pulse += 0.05;
+
+            if (player.magnet > 0) {
+                const dist = Math.hypot(player.x - c.x, player.y - c.y);
+                if (dist < player.magnet) {
+                    c.x += (player.x - c.x) * 0.1;
+                    c.y += (player.y - c.y) * 0.1;
+                }
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.radius + Math.sin(c.pulse) * 2, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffcc00';
+            ctx.shadowColor = '#ffcc00';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.restore();
+
+            const dPlayer = Math.hypot(player.x - c.x, player.y - c.y);
+            if (dPlayer < player.radius + c.radius) {
+                const add = player.doubleCoins ? 2 : 1;
+                sessionCoins += add;
+                coins.splice(i, 1);
+                playSynthSound(900, 0.08, 'sine');
+            }
+        }
+
+        // Process Energy Cells
+        for (let i = energyCells.length - 1; i >= 0; i--) {
+            let eCell = energyCells[i];
+
+            if (player.magnet > 0) {
+                const dist = Math.hypot(player.x - eCell.x, player.y - eCell.y);
+                if (dist < player.magnet) {
+                    eCell.x += (player.x - eCell.x) * 0.1;
+                    eCell.y += (player.y - eCell.y) * 0.1;
+                }
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(eCell.x - 7, eCell.y - 9, 14, 18);
+            ctx.fillStyle = '#00ff66';
+            ctx.shadowColor = '#00ff66';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.restore();
+
+            const dPlayer = Math.hypot(player.x - eCell.x, player.y - eCell.y);
+            if (dPlayer < player.radius + eCell.radius) {
+                energy = Math.min(maxEnergy, energy + 30);
+                energyCells.splice(i, 1);
+                playSynthSound(1200, 0.12, 'triangle');
+            }
+        }
+
+        // Process Obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            let obs = obstacles[i];
+            obs.x += obs.vx;
+            obs.y += obs.vy;
+            obs.rot += obs.rotSpeed;
+
+            ctx.save();
+            ctx.translate(obs.x, obs.y);
+            ctx.rotate(obs.rot);
+            ctx.beginPath();
+            ctx.rect(-obs.size / 2, -obs.size / 2, obs.size, obs.size);
+            ctx.fillStyle = '#ff0055';
+            ctx.shadowColor = '#ff0055';
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+
+            const dist = Math.hypot(player.x - obs.x, player.y - obs.y);
+            if (dist < player.radius + obs.size / 2) {
+                if (player.hasShield) {
+                    player.hasShield = false;
+                    obstacles.splice(i, 1);
+                    playSynthSound(250, 0.2, 'sawtooth');
+                } else {
+                    gameOver(I18N[currentLang].critical_impact);
+                    return;
+                }
+            }
+
+            if (obs.x < -60 || obs.x > canvas.width + 60 || obs.y < -60 || obs.y > canvas.height + 60) {
+                obstacles.splice(i, 1);
+            }
+        }
+
+        score += 0.25;
+        updateHUD();
+        animId = requestAnimationFrame(animate);
+    }
+
+    function gameOver(reason) {
+        isPlaying = false;
+        playSynthSound(100, 0.4, 'sawtooth');
+
+        userData.coins += sessionCoins;
+        if (Math.floor(score) > userData.highScore) {
+            userData.highScore = Math.floor(score);
+        }
+        saveData();
+
+        document.getElementById('gameOverTitle').innerText = I18N[currentLang].system_failure;
+        document.getElementById('gameOverReason').innerText = reason;
+        document.getElementById('finalScore').innerText = Math.floor(score).toLocaleString();
+        document.getElementById('earnedCoins').innerText = '+' + sessionCoins.toLocaleString();
+        document.getElementById('gameOverOverlay').classList.remove('hidden');
+    }
+</script>
+</body>
+</html>
